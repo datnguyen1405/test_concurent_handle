@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Count Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        #result, #progress, #userCount { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>User Count Demo</h1>
+    <p>Your User ID: <span id="userId"></span></p>
+    <p>Active Users: <span id="userCount">Waiting for data...</span></p>
+
+    <h1>Enter a Number</h1>
+    <input type="number" id="numberInput" />
+    <button onclick="processNumber()">Submit</button>
+    
+    <div id="progress">Processing will appear here...</div>
+    <div id="result"></div>
+
+    <script>
+        // Fetch and display the user ID
+        fetch('/get_user_id')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Received user ID:', data.user_id);
+                document.getElementById('userId').textContent = data.user_id;
+            })
+            .catch(error => console.error('Error fetching user ID:', error));
+
+        // Set up EventSource for user count
+        const eventSource = new EventSource('/user_count');
+        eventSource.onmessage = function(event) {
+            console.log('Received user count:', event.data);
+            document.getElementById('userCount').textContent = event.data;
+        };
+        eventSource.onerror = function(error) {
+            console.error('EventSource failed:', error);
+        };
+
+        function processNumber() {
+            const number = document.getElementById('numberInput').value;
+            const resultDiv = document.getElementById('result');
+            const progressDiv = document.getElementById('progress');
+            
+            if (number) {
+                progressDiv.innerHTML = 'Processing...';
+                resultDiv.innerHTML = '';
+
+                fetch('/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ number: number })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    progressDiv.innerHTML = 'Task completed';
+                    resultDiv.innerHTML = `Result: ${data.result}`;
+                })
+                .catch(error => {
+                    progressDiv.innerHTML = 'Error processing the number.';
+                });
+            }
+        }
+    </script>
+</body>
+</html>
